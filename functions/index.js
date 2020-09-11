@@ -3,8 +3,22 @@ const admin  = require('firebase-admin');
 const express = require("express");
 const { request, response } = require('express');
 const app = express();
+const firebase = require("firebase");
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAfM5rAiWcJM8Psx7ZrHQUFDwJDWj1a09w",
+    authDomain: "backend-workshop-aca38.firebaseapp.com",
+    databaseURL: "https://backend-workshop-aca38.firebaseio.com",
+    projectId: "backend-workshop-aca38",
+    storageBucket: "backend-workshop-aca38.appspot.com",
+    messagingSenderId: "729627544050",
+    appId: "1:729627544050:web:3ea9a90a8f5eca087d836b",
+    measurementId: "G-BPLBFRQYBT"
+  };
+
 
 admin.initializeApp();
+firebase.initializeApp(firebaseConfig);
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
@@ -77,6 +91,30 @@ app.get("/movie/:movieId", (request, response) => {
     .catch((err) => {
         return response.status(500).json({error: err.code});
     });
+});
+
+app.post("/signup", (request, response) => {
+    firebase
+    .auth()
+    .createUserWithEmailAndPassword(request.body.email,
+    request.body.password)
+    .then((data) => data.user.getIdToken())
+    .then((token) => {
+        return response.json({token});
+    })
+    .catch((err) => response.status(500).json({error: err.code}));
+});
+
+app.post("/login", (request, response) => {
+    firebase
+    .auth()
+    .signInWithEmailAndPassword(request.body.email,
+    request.body.password)
+    .then((data) => data.user.getIdToken())
+    .then((token) => {
+    return response.json({ token });
+    })
+    .catch((err) => response.status(500).json({error: err.code}));
 });
 
 /**
