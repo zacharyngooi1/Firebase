@@ -1,124 +1,90 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-
-// How to retrieve your service account key:
-// 1. Create your firebase project
-// 2. Go to project settings
-// 3. Go to service accounts tab
-// 4. Generate new private key
-// 5. Save the file on your working directory
-const ServiceAccount = require("./ServiceAccountKey.json");
+const functions = require('firebase-functions');
+const admin  = require('firebase-admin');
 const express = require("express");
+const { request, response } = require('express');
 const app = express();
-const firebase = require("firebase");
 
-// How to retrieve your firebase config:
-// 1. Create your firebase project
-// 2. Go to project settings
-// 3. On the bottom part of the General tab, click the </> icon
-// 4. Follow the command shown on the prompt
-// 5. You can now access the config on the "Firebase SDK snippet" section
-// 5. Save the file on your working directory
-/* FORMAT OF THE CONFIG FILE: 
-    const firebaseConfig = {
-      apiKey: "randomcharactershereasdfghjkl",
-      authDomain: "csesocworkshop.firebaseapp.com",
-      databaseURL: "https://xxxxxx.firebaseio.com",
-      projectId: "csesocworkshop",
-      storageBucket: "csesocworkshop.appspot.com",
-      messagingSenderId: "xxxxxxxxxx",
-      appId: "x:xxxxx:xxxxxx:Xxxxx",
-      measurementId: "X-XXXXXX"
-    };
-*/
-const config = require("./FirebaseConfig");
+admin.initializeApp();
 
-firebase.initializeApp(config);
-admin.initializeApp({
-  credential: admin.credential.cert(ServiceAccount),
-  databaseURL: "https://`csesocworkshop.firebaseio.com",
-});
+// // Create and Deploy Your First Cloud Functions
+// // https://firebase.google.com/docs/functions/write-firebase-functions
+//
+//exports.helloWorld = functions.https.onRequest(//(request, response) => {
+//    functions.logger.info("Hello logs!", {structuredData: true});
+//    response.send("Hello from Firebase!");
+// });
+
+// var.let const to declar var[iables
+// c is int x = 2]
+// javascript is let x = 1
+// x = "hello"
 
 const db = admin.firestore();
 
+
 app.get("/getMovies", (request, response) => {
-  db.collection("movies")
-    .orderBy("title")
+    // accesses database
+    db.collection("movies")
     .get()
     .then((data) => {
-      let movies = new Array();
-      data.forEach((doc) => {
-        movies.push(doc.data());
-      });
-      return response.json({ movies });
-    });
+        let movies = []; // create array
+        data.forEach((doc) => {
+            movies.push(doc.data());
+        });
+        return response.json({movies})
+    })
+    .catch(err => respoonse.status(500).json({error: err.code}));
 });
+
+
+// now we are going to try to send data ao its a post request
+// Genres: Drama, Action, etc..... using split function
+// This specifies the route 
 app.post("/createNewMovie", (request, response) => {
-  const genres = request.body.genres.split(",");
-  const newMovie = {
-    title: request.body.title,
-    yearReleased: parseInt(String(request.body.yearReleased)),
-    imageURL: request.body.imageURL,
-    genres: genres,
-  };
-  db.collection("movies")
+    // adds comma between each genre string
+    const genres = request.body.genres.split(',')
+    const newMovie = {
+        // request body object, all sent as string type as default
+        title: request.body.title,
+        yearReleased: parseInt(String(request.body.yearReleased)),
+        imageURL: request.body.imageURL,
+        genres, genres,
+    };
+    db.collection("movies")
     .add(newMovie)
     .then((data) => {
-      return response.json({
-        status: "success",
-        details: `movie ID ${data.id} added`,
-      });
-    })
-    .catch((err) =>
-      response.status(500).json({ status: "failed", error: err.code })
-    );
+        return response.json({
+            status: "success", 
+            details: `movie with ID ${data.id} added!`,
+        });
+    })// Always good practice to catch errors
+    .catch(err => respoonse.status(500).json({error: err.code}));
 });
+
 
 app.get("/movie/:movieId", (request, response) => {
-  const id = request.params.movieId;
-  db.collection("movies")
-    .doc(id)
+    db.collection("movies")
+    .doc(request.params.movieId)
     .get()
-    .then((data) => {
-      if (data.exists) {
-        console.log(data);
-        return response.json({ status: "success", movie: data.data() });
-      }
-      return response
+    .then((data)=> {
+        if(data.exists) {
+            return response.json({status: "Success", movie: data.data()});
+        } else 
+        return response
         .status(404)
-        .json({ status: "failed", error: "Movie not found" });
+        .json({status: 'Failed', error: "Movie not found" });
     })
-    .catch((err) =>
-      response.status(500).json({ status: "failed", error: err.code })
-    );
+    .catch((err) => {
+        return response.status(500).json({error: err.code});
+    });
 });
 
-app.post("/signup", (request, response) => {
-  const user = {
-    email: request.body.email,
-    password: request.body.password,
-  };
-  firebase
-    .auth()
-    .createUserWithEmailAndPassword(user.email, user.password)
-    .then((data) => data.user.getIdToken())
-    .then((token) => {
-      return response.json({ token });
-    })
-    .catch((err) => response.status(500).json({ error: err.code }));
-});
+/**
+ * Promise
+ * 3 States
+ * Pending -- waiting for a promis to be resolved
+ * resolve -- operation succcess
+ * reject -- operation failed
+ */
 
-app.post("login", (request, response) => {
-  const user = {
-    email: request.body.email,
-    password: request.body.password,
-  };
-  firebase
-    .auth()
-    .signInWithEmailAndPassword(user.email, user.password)
-    .then((data) => data.user.getIdToken())
-    .then((token) => response.json({ token }))
-    .catch((err) => response.status(500).json({ error: err.code }));
-});
-
-exports.api = functions.region("asia-east2").https.onRequest(app);
+exports.api = functions.region("asia-southeast2").https.onRequest(app);
